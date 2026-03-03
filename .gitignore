@@ -1,0 +1,40 @@
+# --- Go build outputs ---
+/ctx-clip
+/ctx-clip.exe
+/*.test
+/*.out
+*.prof
+*.cover
+*.cov
+coverage.*
+
+# Go workspace (if used)
+/go.work
+/go.work.sum
+
+# Optional: vendor (only ignore if you don't commit vendor)
+/vendor/
+
+# --- Local config / context files ---
+.ctx
+.ctx.local
+.ctx.*.local
+
+# --- Editor / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# --- OS / filesystem noise ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Logs / temp ---
+*.log
+tmp/
+temp/
+.cache/

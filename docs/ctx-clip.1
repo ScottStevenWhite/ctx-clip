@@ -1,0 +1,80 @@
+.TH CTX-CLIP 1 "March 2026" "ctx-clip 0.1.0" "User Commands"
+.SH NAME
+ctx-clip \- copy text files from a directory tree into one clipboard payload
+.SH SYNOPSIS
+.B ctx-clip
+[\fIoptions\fR] [\fIdirectory ...\fR]
+.SH DESCRIPTION
+.B ctx-clip
+walks a directory tree (tree-inspired), collects only files that look like text,
+formats them as:
+
+.nf
+path/to/file:
+<contents>
+.fi
+
+and copies the combined payload to the clipboard.
+Hidden files are skipped by default.
+.SH OPTIONS
+.TP
+.BR \-L " " \fIlevel\fR
+Maximum depth. \-1 means unlimited. 0 means only the root directory.
+.TP
+.BR \-I " " \fIpattern\fR
+Exclude files/directories matching pattern. Repeatable. Alternates may be separated by '|'.
+.TP
+.BR \-P " " \fIpattern\fR
+Include only files matching pattern. Repeatable. Alternates may be separated by '|'.
+.TP
+.B \-a
+Include hidden files and directories.
+.TP
+.B \-l
+Follow symlinked directories.
+.TP
+.B \-x
+Stay on the same filesystem as the root.
+.TP
+.B \-f
+Use full paths in file headers.
+.TP
+.B \-\-print
+Also print the payload to stdout (clipboard is still written unless \-\-no-clipboard is used).
+.TP
+.B \-\-no-clipboard
+Do not write to the clipboard; print the payload to stdout instead.
+.TP
+.B \-\-quiet
+Suppress payload output (summary still printed).
+.TP
+.BI \-\-ctx " PATH"
+Load config from PATH.
+.TP
+.B \-\-no-ctx
+Ignore any .ctx file.
+.TP
+.B \-\-version
+Print version and exit.
+.SH PATTERNS
+Patterns are "smart":
+.TP
+.B *.json
+Glob (matches file names/paths)
+.TP
+.B node_modules
+Literal path segment match
+.TP
+.B re:REGEX
+Raw regular expression match against the relative path
+.SH CTX FILE
+If a \fB.ctx\fR file exists in the current directory, it is loaded unless \fB--no-ctx\fR is used.
+Keys include \fBinclude\fR, \fBexclude\fR, \fBmax-depth\fR, \fBhidden\fR, \fBclipboard\fR, \fBprint\fR.
+.SH CLIPBOARD
+Tries clipboard tools in this order: wl-copy, xclip, xsel, pbcopy, clip.exe.
+.SH EXIT STATUS
+0 on success. Non-zero on errors (including clipboard failure when enabled).
+.SH SEE ALSO
+.BR tree (1),
+.BR xclip (1),
+.BR wl-copy (1)

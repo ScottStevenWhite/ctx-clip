@@ -1,0 +1,14 @@
+# Copy only source code and docs, skip dependencies and bulky generated data.
+include README.md
+include server/src/**
+include web/src/**
+exclude node_modules
+exclude package-lock.json
+exclude dist
+max-depth 5
+hidden false
+follow-symlinks false
+same-filesystem false
+full-paths false
+clipboard true
+print true
