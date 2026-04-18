@@ -51,6 +51,9 @@ Suppress payload output (summary still printed).
 .BI \-\-ctx " PATH"
 Load config from PATH.
 .TP
+.B \-\-expand-ctx
+Expand matched files using directory-local \fB.ctx\fR mappings.
+.TP
 .B \-\-no-ctx
 Ignore any .ctx file.
 .TP
@@ -69,7 +72,15 @@ Literal path segment match
 Raw regular expression match against the relative path
 .SH CTX FILE
 If a \fB.ctx\fR file exists in the current directory, it is loaded unless \fB--no-ctx\fR is used.
-Keys include \fBinclude\fR, \fBexclude\fR, \fBmax-depth\fR, \fBhidden\fR, \fBclipboard\fR, \fBprint\fR.
+Keys include \fBinclude\fR, \fBexclude\fR, \fBmax-depth\fR, \fBhidden\fR, \fBclipboard\fR, and \fBprint\fR.
+.PP
+Mapped context directives are also supported:
+.IP
+\fBcontext <target-pattern> <related-file> [more-related-files...]\fR
+.IP
+\fBcontext <target-pattern> => <related-file> [more-related-files...]\fR
+.PP
+When \fB--expand-ctx\fR is enabled, \fBctx-clip\fR looks for a \fB.ctx\fR file in the same directory as each matched file, expands related files recursively, and warns instead of aborting if a mapped file is missing.
 .SH CLIPBOARD
 Tries clipboard tools in this order: wl-copy, xclip, xsel, pbcopy, clip.exe.
 .SH EXIT STATUS

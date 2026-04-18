@@ -44,8 +44,9 @@ func run(args []string) int {
 		noClipboardFlag = fs.Bool("no-clipboard", false, "do not copy to clipboard; print payload to stdout")
 		quietFlag       = fs.Bool("quiet", false, "suppress payload output (summary still printed)")
 
-		ctxPathFlag = fs.String("ctx", "", "path to a .ctx config file")
-		noCtxFlag   = fs.Bool("no-ctx", false, "ignore any .ctx file")
+		ctxPathFlag   = fs.String("ctx", "", "path to a .ctx config file")
+		noCtxFlag     = fs.Bool("no-ctx", false, "ignore any .ctx file")
+		expandCtxFlag = fs.Bool("expand-ctx", false, "expand matched files using directory-local .ctx mappings")
 
 		versionFlag = fs.Bool("version", false, "print version and exit")
 	)
@@ -67,6 +68,7 @@ Examples:
   ctx-clip
   ctx-clip -L 1 -I 'node_modules|package-lock.json'
   ctx-clip -P 'server/src/**|web/src/**'
+  ctx-clip --expand-ctx docs/adr_example.md
   ctx-clip --no-clipboard
   ctx-clip --print
 
@@ -80,6 +82,7 @@ Smart pattern rules:
   include server/src/**
   include web/src/**
   exclude node_modules
+  context adr_example.md supporting.md ../shared/glossary.md
   exclude *.json
   max-depth 2
   hidden false
@@ -166,6 +169,21 @@ Smart pattern rules:
 		return 1
 	}
 
+	ctxWarnings := 0
+	if *expandCtxFlag {
+		expandedFiles, mappedStats, warnings, err := ctxconfig.ExpandMappedFiles(files, settings.fullPaths)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ctx-clip: %v\n", err)
+			return 1
+		}
+		files = expandedFiles
+		stats = mergeStats(stats, mappedStats)
+		ctxWarnings = len(warnings)
+		for _, warning := range warnings {
+			fmt.Fprintln(os.Stderr, warning)
+		}
+	}
+
 	payload := buildPayload(files)
 
 	// Print payload only when explicitly requested OR when no-clipboard was requested.
@@ -185,7 +203,7 @@ Smart pattern rules:
 		}
 	}
 
-	printSummary(stats, len(files), len(payload), clipboardName, cfgSource, settings.useClipboard, payload == "")
+	printSummary(stats, len(files), len(payload), clipboardName, cfgSource, settings.useClipboard, payload == "", ctxWarnings)
 	return exitCode
 }
 
@@ -286,7 +304,7 @@ func buildPayload(files []scan.File) string {
 	return b.String()
 }
 
-func printSummary(stats scan.Stats, copiedFiles int, payloadBytes int, clipboardName, cfgSource string, clipboardWanted, empty bool) {
+func printSummary(stats scan.Stats, copiedFiles int, payloadBytes int, clipboardName, cfgSource string, clipboardWanted, empty bool, ctxWarnings int) {
 	sourceMsg := ""
 	if cfgSource != "" {
 		sourceMsg = fmt.Sprintf(" | config: %s", cfgSource)
@@ -306,7 +324,7 @@ func printSummary(stats scan.Stats, copiedFiles int, payloadBytes int, clipboard
 
 	fmt.Fprintf(
 		os.Stderr,
-		"ctx-clip: copied %d file(s), %d byte(s)%s%s | skipped hidden=%d ignored=%d binary=%d empty=%d nonregular=%d errors=%d symlink-dirs=%d\n",
+		"ctx-clip: copied %d file(s), %d byte(s)%s%s | skipped hidden=%d ignored=%d binary=%d empty=%d nonregular=%d errors=%d symlink-dirs=%d ctx-warnings=%d\n",
 		copiedFiles,
 		payloadBytes,
 		sourceMsg,
@@ -318,6 +336,7 @@ func printSummary(stats scan.Stats, copiedFiles int, payloadBytes int, clipboard
 		stats.NonRegularSkipped,
 		stats.ErrorSkipped,
 		stats.SymlinkDirSkipped,
+		ctxWarnings,
 	)
 }
 
@@ -361,4 +380,19 @@ func addDefaultExcludes(excludes []string, visited map[string]bool, cfg ctxconfi
 		".ctx",         // config file (especially relevant when -a is used)
 		".ctx.example", // template file
 	)
+}
+
+func mergeStats(a, b scan.Stats) scan.Stats {
+	return scan.Stats{
+		Roots:             a.Roots + b.Roots,
+		FilesCopied:       a.FilesCopied + b.FilesCopied,
+		DirsVisited:       a.DirsVisited + b.DirsVisited,
+		HiddenSkipped:     a.HiddenSkipped + b.HiddenSkipped,
+		IgnoredSkipped:    a.IgnoredSkipped + b.IgnoredSkipped,
+		BinarySkipped:     a.BinarySkipped + b.BinarySkipped,
+		EmptySkipped:      a.EmptySkipped + b.EmptySkipped,
+		NonRegularSkipped: a.NonRegularSkipped + b.NonRegularSkipped,
+		ErrorSkipped:      a.ErrorSkipped + b.ErrorSkipped,
+		SymlinkDirSkipped: a.SymlinkDirSkipped + b.SymlinkDirSkipped,
+	}
 }

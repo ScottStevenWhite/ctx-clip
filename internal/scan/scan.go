@@ -274,6 +274,10 @@ func (c *Collector) processFile(fsPath, displayPath string, rootDev uint64, expl
 	}
 
 	display := displayPath
+	source := fsPath
+	if abs, err := filepath.Abs(fsPath); err == nil {
+		source = abs
+	}
 	if c.opts.FullPaths {
 		abs, err := filepath.Abs(fsPath)
 		if err == nil {
@@ -283,7 +287,7 @@ func (c *Collector) processFile(fsPath, displayPath string, rootDev uint64, expl
 
 	c.files = append(c.files, File{
 		DisplayPath: display,
-		SourcePath:  fsPath,
+		SourcePath:  source,
 		Content:     content,
 	})
 	c.stats.FilesCopied++

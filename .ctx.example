@@ -5,6 +5,7 @@ include web/src/**
 exclude node_modules
 exclude package-lock.json
 exclude dist
+context adr_example.md supporting.md ../shared/glossary.md
 max-depth 5
 hidden false
 follow-symlinks false

@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Include        []string
 	Exclude        []string
+	Mappings       []Mapping
 	MaxDepth       *int
 	Hidden         *bool
 	FollowSymlinks *bool
@@ -19,6 +20,11 @@ type Config struct {
 	FullPaths      *bool
 	Clipboard      *bool
 	PrintPayload   *bool
+}
+
+type Mapping struct {
+	Target  string
+	Related []string
 }
 
 func Load(path string) (Config, error) {
@@ -35,6 +41,14 @@ func Load(path string) (Config, error) {
 		lineNo++
 		raw := strings.TrimSpace(scanner.Text())
 		if raw == "" || strings.HasPrefix(raw, "#") || strings.HasPrefix(raw, "//") {
+			continue
+		}
+
+		if mapping, ok, err := parseMapping(raw); ok {
+			if err != nil {
+				return Config{}, fmt.Errorf("%s:%d: %w", filepath.Base(path), lineNo, err)
+			}
+			cfg.Mappings = append(cfg.Mappings, mapping)
 			continue
 		}
 
@@ -143,4 +157,87 @@ func parseBool(s string) (bool, error) {
 	default:
 		return false, fmt.Errorf("invalid boolean")
 	}
+}
+
+func parseMapping(line string) (Mapping, bool, error) {
+	tokens, err := splitTokens(line)
+	if err != nil {
+		return Mapping{}, true, err
+	}
+	if len(tokens) == 0 {
+		return Mapping{}, false, nil
+	}
+
+	switch normalizeKey(tokens[0]) {
+	case "context", "contexts", "map", "mapping", "related":
+	default:
+		return Mapping{}, false, nil
+	}
+
+	if len(tokens) < 3 {
+		return Mapping{}, true, fmt.Errorf("expected <directive> <target> <related...>")
+	}
+
+	target := tokens[1]
+	related := tokens[2:]
+	if related[0] == "=>" || related[0] == "->" {
+		related = related[1:]
+	}
+	if len(related) == 0 {
+		return Mapping{}, true, fmt.Errorf("expected at least one related path")
+	}
+
+	return Mapping{
+		Target:  target,
+		Related: related,
+	}, true, nil
+}
+
+func splitTokens(line string) ([]string, error) {
+	var tokens []string
+	var b strings.Builder
+	var quote rune
+	escaped := false
+
+	flush := func() {
+		if b.Len() == 0 {
+			return
+		}
+		tokens = append(tokens, b.String())
+		b.Reset()
+	}
+
+	for _, r := range line {
+		switch {
+		case escaped:
+			b.WriteRune(r)
+			escaped = false
+		case quote != 0:
+			if r == '\\' {
+				escaped = true
+				continue
+			}
+			if r == quote {
+				quote = 0
+				continue
+			}
+			b.WriteRune(r)
+		case r == '\'' || r == '"':
+			quote = r
+		case r == ' ' || r == '\t':
+			flush()
+		default:
+			b.WriteRune(r)
+		}
+	}
+
+	if escaped {
+		b.WriteRune('\\')
+	}
+	if quote != 0 {
+		return nil, fmt.Errorf("unterminated quoted string")
+	}
+
+	flush()
+	return tokens, nil
 }

@@ -208,8 +208,13 @@ func compileGlob(pattern string) (*regexp.Regexp, bool, bool, error) {
 		switch r {
 		case '*':
 			if i+1 < len(runes) && runes[i+1] == '*' {
-				b.WriteString(".*")
-				i++
+				if i+2 < len(runes) && runes[i+2] == '/' {
+					b.WriteString("(?:.*/)?")
+					i += 2
+				} else {
+					b.WriteString(".*")
+					i++
+				}
 			} else {
 				b.WriteString("[^/]*")
 			}
