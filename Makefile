@@ -1,6 +1,7 @@
 GO ?= go
 BIN ?= ctx-clip
 BINDIR ?= $(HOME)/.local/bin
+MANDIR ?= $(HOME)/.local/share/man
 GOCACHE ?= $(HOME)/.cache/go-build
 GOMODCACHE ?= $(HOME)/go/pkg/mod
 GOENV = GOCACHE=$(GOCACHE) GOMODCACHE=$(GOMODCACHE)
@@ -25,6 +26,8 @@ build:
 install: build
 	mkdir -p $(BINDIR)
 	install -m 0755 $(BIN) $(BINDIR)/$(BIN)
+	mkdir -p $(MANDIR)/man1
+	gzip -c docs/ctx-clip.1 > $(MANDIR)/man1/ctx-clip.1.gz
 
 clean:
 	rm -f $(BIN)
